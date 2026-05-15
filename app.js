@@ -1,57 +1,174 @@
-const URL = "./my_model/";
-let model, webcam, ctx, labelContainer, maxPredictions;
+/* ══════════════════════════════════════════
+   CONFIGURACIÓN
+══════════════════════════════════════════ */
+const MODEL_URL = "https://teachablemachine.withgoogle.com/models/dyyi3qHP7/";
 
+/* ══════════════════════════════════════════
+   ESTADO
+══════════════════════════════════════════ */
+let model, webcam, ctx, maxPredictions;
+let running = false;
+
+/* ══════════════════════════════════════════
+   REFERENCIAS AL DOM
+══════════════════════════════════════════ */
+const canvasEl       = document.getElementById("canvas");
+const canvasWrapper  = document.getElementById("canvas-wrapper");
+const placeholder    = document.getElementById("placeholder");
+const statusEl       = document.getElementById("status");
+const btnStart       = document.getElementById("btn-start");
+const labelContainer = document.getElementById("label-container");
+const emptyState     = document.getElementById("empty-state");
+const topCard        = document.getElementById("top-card");
+const topNameEl      = document.getElementById("top-name");
+const topPctEl       = document.getElementById("top-pct");
+
+/* ══════════════════════════════════════════
+   INICIALIZACIÓN
+══════════════════════════════════════════ */
 async function init() {
-    const modelURL = URL + "model.json";
-    const metadataURL = URL + "metadata.json";
+  if (running) return;
 
-    model = await tmPose.load(modelURL, metadataURL);
+  btnStart.disabled = true;
+  setStatus("loading", "● Cargando modelo…");
+
+  try {
+    // Cargar modelo y metadatos
+    model = await tmPose.load(MODEL_URL + "model.json", MODEL_URL + "metadata.json");
     maxPredictions = model.getTotalClasses();
 
-    const size = 200;
-    const flip = true;
-    webcam = new tmPose.Webcam(size, size, flip);
+    // Configurar webcam
+    const size = 260;
+    webcam = new tmPose.Webcam(size, size, true); // true = espejo
     await webcam.setup();
     await webcam.play();
+
+    // Preparar canvas
+    canvasEl.width  = size;
+    canvasEl.height = size;
+    ctx = canvasEl.getContext("2d");
+
+    // Crear una barra por cada clase del modelo
+    buildBars();
+
+    // Activar UI
+    running = true;
+    placeholder.classList.add("hidden");
+    canvasWrapper.classList.add("active");
+    emptyState.style.display = "none";
+    topCard.style.display    = "flex";
+    setStatus("online", "● Detección activa");
+
+    // Arrancar bucle de predicción
     window.requestAnimationFrame(loop);
 
-    const canvas = document.getElementById("canvas");
-    canvas.width = size;
-    canvas.height = size;
-    ctx = canvas.getContext("2d");
-
-    labelContainer = document.getElementById("label-container");
-    for (let i = 0; i < maxPredictions; i++) {
-        labelContainer.appendChild(document.createElement("div"));
-    }
+  } catch (err) {
+    console.error("Error al inicializar:", err);
+    setStatus("", "Error al cargar el modelo");
+    btnStart.disabled = false;
+  }
 }
 
-async function loop(timestamp) {
-    webcam.update();
-    await predict();
-    window.requestAnimationFrame(loop);
+/* ══════════════════════════════════════════
+   CONSTRUCCIÓN DE BARRAS DE RESULTADOS
+══════════════════════════════════════════ */
+function buildBars() {
+  labelContainer.innerHTML = "";
+
+  for (let i = 0; i < maxPredictions; i++) {
+    const item = document.createElement("div");
+    item.className = "bar-item";
+    item.innerHTML = `
+      <div class="bar-header">
+        <span class="bar-name" id="name-${i}">Clase ${i + 1}</span>
+        <span class="bar-pct"  id="pct-${i}">0%</span>
+      </div>
+      <div class="bar-track">
+        <div class="bar-fill" id="fill-${i}"></div>
+      </div>`;
+    labelContainer.appendChild(item);
+  }
 }
 
+/* ══════════════════════════════════════════
+   BUCLE PRINCIPAL
+══════════════════════════════════════════ */
+async function loop() {
+  webcam.update();
+  await predict();
+  window.requestAnimationFrame(loop);
+}
+
+/* ══════════════════════════════════════════
+   PREDICCIÓN
+══════════════════════════════════════════ */
 async function predict() {
-    const { pose, posenetOutput } = await model.estimatePose(webcam.canvas);
-    const prediction = await model.predict(posenetOutput);
+  // 1. Estimar pose con PoseNet
+  const { pose, posenetOutput } = await model.estimatePose(webcam.canvas);
 
-    for (let i = 0; i < maxPredictions; i++) {
-        const classPrediction =
-            prediction[i].className + ": " + prediction[i].probability.toFixed(2);
-        labelContainer.childNodes[i].innerHTML = classPrediction;
+  // 2. Clasificar con el modelo entrenado
+  const predictions = await model.predict(posenetOutput);
+
+  // 3. Encontrar la clase dominante
+  const best = predictions.reduce((a, b) => a.probability > b.probability ? a : b);
+
+  // 4. Actualizar barras
+  predictions.forEach((p, i) => {
+    const pct   = (p.probability * 100).toFixed(1);
+    const isDom = p.className === best.className;
+
+    const nameEl = document.getElementById(`name-${i}`);
+    const pctEl  = document.getElementById(`pct-${i}`);
+    const fillEl = document.getElementById(`fill-${i}`);
+
+    if (nameEl) nameEl.textContent = p.className;
+
+    if (pctEl) {
+      pctEl.textContent = pct + "%";
+      pctEl.classList.toggle("high", isDom);
     }
 
-    drawPose(pose);
+    if (fillEl) {
+      fillEl.style.width = pct + "%";
+      fillEl.classList.toggle("dominant", isDom);
+    }
+  });
+
+  // 5. Actualizar tarjeta principal
+  topNameEl.textContent = best.className;
+  topPctEl.textContent  = (best.probability * 100).toFixed(0) + "%";
+
+  // 6. Dibujar pose sobre el canvas
+  drawPose(pose);
 }
 
+/* ══════════════════════════════════════════
+   DIBUJADO DE POSE
+══════════════════════════════════════════ */
 function drawPose(pose) {
-    if (webcam.canvas) {
-        ctx.drawImage(webcam.canvas, 0, 0);
-        if (pose) {
-            const minPartConfidence = 0.5;
-            tmPose.drawKeypoints(pose.keypoints, minPartConfidence, ctx);
-            tmPose.drawSkeleton(pose.keypoints, minPartConfidence, ctx);
-        }
-    }
+  if (!webcam.canvas) return;
+
+  // Dibujar frame de la webcam
+  ctx.drawImage(webcam.canvas, 0, 0);
+
+  // Dibujar keypoints y esqueleto si hay pose detectada
+  if (pose) {
+    const minConfidence = 0.5;
+    tmPose.drawKeypoints(pose.keypoints, minConfidence, ctx);
+    tmPose.drawSkeleton(pose.keypoints, minConfidence, ctx);
+  }
+}
+
+/* ══════════════════════════════════════════
+   UTILIDADES
+══════════════════════════════════════════ */
+
+/**
+ * Actualiza el badge de estado.
+ * @param {string} cls   - Clase CSS: "online" | "loading" | ""
+ * @param {string} text  - Texto a mostrar
+ */
+function setStatus(cls, text) {
+  statusEl.className   = cls;
+  statusEl.textContent = text;
 }
