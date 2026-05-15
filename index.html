@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ML PAGES</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/pose@0.8/dist/teachablemachine-pose.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <center><h1>ENTRENAMIENTO DE EMOCIONES ML</h1></center>
+    <center><p>En esta página se muestra el entrenamiento de emociones utilizando Machine Learning.
+    Se han utilizado teachablemachine para clasificar las emociones a partir de datos de poses.</p></center>
+
+    <center><button type="button" onclick="init()">Iniciar cámara</button></center>
+    <center><canvas id="canvas"></canvas></center>
+    <center><div id="label-container"></div></center>
+
+    <script src="app.js"></script>
+</body>
+</html>
