@@ -2,7 +2,7 @@
 
 Este repositorio contiene una pagina web de detección de poses en tiempo real construida con `TensorFlow.js` y `Teachable Machine Pose`. El proyecto utiliza la cámara del dispositivo para estimar la postura de la persona usuaria, comparar esa información contra un modelo previamente entrenado y mostrar en pantalla la clase detectada con su nivel de confianza.
 
-La aplicación fue diseñada como una experiencia simple, visual y directa: la cámara aparece en un panel principal, el esqueleto corporal se dibuja en tiempo real sobre la imagen, y en un panel lateral se presentan las probabilidades de cada pose reconocida por el modelo.
+La pagina web fue diseñada como una experiencia simple, visual y directa: la cámara aparece en un panel principal, el esqueleto corporal se dibuja en tiempo real sobre la imagen, y en un panel lateral se presentan las probabilidades de cada pose reconocida por el modelo.
 
 ## Vista general
 
@@ -33,9 +33,9 @@ La solución corre completamente en el navegador. No hay procesamiento en un ser
 
 ![Pose sorprendido](readme_img/pose-sorprendido.png)
 
-## ¿Qué hace este proyecto?
+## ¿Qué hace esta pagina web?
 
-Este proyecto reconoce poses humanas asociadas a gestos o expresiones representadas como "emojis de pose". A partir de la postura del cuerpo y la ubicación de puntos clave, el modelo clasifica cuál de las poses entrenadas está realizando la persona frente a la cámara.
+Esta pagina web reconoce poses humanas asociadas a gestos o expresiones representadas como "emojis de pose". A partir de la postura del cuerpo y la ubicación de puntos clave, el modelo clasifica cuál de las poses entrenadas está realizando la persona frente a la cámara.
 
 En la versión actual, la interfaz muestra cuatro clases principales:
 
