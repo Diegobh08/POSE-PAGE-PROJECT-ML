@@ -1,4 +1,4 @@
-# IA Pose Detector
+# IAPose Detector
 
 Este repositorio contiene una pagina web de detección de poses en tiempo real construida con `TensorFlow.js` y `Teachable Machine Pose`. El proyecto utiliza la cámara del dispositivo para estimar la postura de la persona usuaria, comparar esa información contra un modelo previamente entrenado y mostrar en pantalla la clase detectada con su nivel de confianza.
 
