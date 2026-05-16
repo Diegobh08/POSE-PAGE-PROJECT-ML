@@ -9,6 +9,25 @@ const MODEL_URL = "https://teachablemachine.withgoogle.com/models/dyyi3qHP7/";
 let model, webcam, ctx, maxPredictions;
 let running = false;
 
+const LABEL_MAP = {
+  "class 7": "pensando",
+  "class 8": "sorprendido"
+};
+
+function getDisplayName(rawName) {
+  if (!rawName) return rawName;
+  const normalized = rawName.trim().toLowerCase();
+
+  if (/^class\s*7$/i.test(normalized) || normalized === "7") {
+    return "pensando";
+  }
+  if (/^class\s*8$/i.test(normalized) || normalized === "8") {
+    return "sorprendido";
+  }
+
+  return LABEL_MAP[rawName] || rawName;
+}
+
 /* ══════════════════════════════════════════
    REFERENCIAS AL DOM
 ══════════════════════════════════════════ */
@@ -121,7 +140,10 @@ async function predict() {
     const pctEl  = document.getElementById(`pct-${i}`);
     const fillEl = document.getElementById(`fill-${i}`);
 
-    if (nameEl) nameEl.textContent = p.className;
+    const rawName = p.className || p.label || "";
+    const displayName = getDisplayName(rawName);
+
+    if (nameEl) nameEl.textContent = displayName;
 
     if (pctEl) {
       pctEl.textContent = pct + "%";
@@ -135,7 +157,8 @@ async function predict() {
   });
 
   // 5. Actualizar tarjeta principal
-  topNameEl.textContent = best.className;
+  const bestName = getDisplayName(best.className || best.label || "");
+  topNameEl.textContent = bestName;
   topPctEl.textContent  = (best.probability * 100).toFixed(0) + "%";
 
   // 6. Dibujar pose sobre el canvas
